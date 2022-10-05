@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect, KeyboardEvent } from 'react';
+import React, { FC, useState, useEffect } from 'react';
 import styled from 'styled-components';
 
 import { EditSvg } from 'components/svg';
@@ -41,13 +41,7 @@ const CardPreview: FC<CardPreviewProps> = ({ title, columnId, cardId, commentsQ,
 
   useEffect(() => {
     setValue('cardTitle', title);
-  }, [title]);
-
-  const onEnterPress = (e: KeyboardEvent<HTMLInputElement>): any => {
-    if (e.key === 'Enter') {
-      handleSubmit(onSubmit)();
-    }
-  };
+  }, [title, setValue]);
 
   /*  const onFocusCursorToEnd = (e: React.FocusEvent<HTMLTextAreaElement>) => {
     const oldText = textareaVal;
@@ -59,12 +53,7 @@ const CardPreview: FC<CardPreviewProps> = ({ title, columnId, cardId, commentsQ,
     <>
       {isEditable ? (
         <EditForm onSubmit={handleSubmit(onSubmit)}>
-          <InputField
-            control={control}
-            name="cardTitle"
-            rules={{ required: true }}
-            inputProps={{ autoFocus: true, onKeyDown: onEnterPress }}
-          />
+          <InputField control={control} name="cardTitle" rules={{ required: true }} />
           <SaveButton>Save</SaveButton>
         </EditForm>
       ) : (
@@ -126,18 +115,7 @@ const EditForm = styled.form`
   gap: 10px;
   margin-bottom: 10px;
 `;
-const EditArea = styled.textarea`
-  resize: none;
-  height: 80px;
-  width: 100%;
-  border-radius: 5px;
-  border: 1px solid rgba(0, 0, 0, 0.3);
-  padding: 7px 15px;
-  font-family: Arial, Helvetica, sans-serif;
-  &:focus {
-    outline: 1px solid #000;
-  }
-`;
+
 const Comments = styled.div`
   font-size: 14px;
   color: rgba(0, 0, 0, 0.3);

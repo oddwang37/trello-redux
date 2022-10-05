@@ -1,15 +1,21 @@
-import React, { FC, useEffect, useState, useRef, KeyboardEvent } from 'react';
+import React, { FC, useEffect, KeyboardEvent } from 'react';
 import styled from 'styled-components';
 import { useSelector } from 'react-redux';
+import { FieldValues, useForm } from 'react-hook-form';
 
 import { Overlay, CloseButton } from 'components';
 import { Description, Comments } from './components';
+import { InputField } from 'components';
 import { CardSvg, BinSvg } from 'components/svg';
 import { useAppDispatch, RootState } from 'state/store';
 import { deleteCard, editCardTitle } from 'state/ducks/cards/slices';
 import { selectCardById } from 'state/ducks/cards/selectors';
 import { selectPopupCardId } from 'state/ducks/popupCard/selectors';
 import { selectColumnOfCard } from 'state/ducks/columns/selectors';
+
+interface TitleFormValues extends FieldValues {
+  title: string;
+}
 
 const Card: FC<CardProps> = ({ isOpened, closeCard }) => {
   const cardId = useSelector(selectPopupCardId);
@@ -18,38 +24,20 @@ const Card: FC<CardProps> = ({ isOpened, closeCard }) => {
   const username = useSelector((state: RootState) => state.user.name);
   const dispatch = useAppDispatch();
 
+  const { handleSubmit, control, setValue } = useForm<TitleFormValues>({
+    defaultValues: {
+      title: '',
+    },
+  });
+
   const onClickDelete = () => {
     dispatch(deleteCard({ cardId, columnId: cardInfo?.id || '' }));
     closeCard();
   };
 
-  const [headingVal, setHeadingVal] = useState<string>('');
-
-  const titleInputRef = useRef<HTMLInputElement>(null);
-
-  const onEnterPress = (e: KeyboardEvent<HTMLInputElement>): any => {
-    if (e.key === 'Enter' && titleInputRef.current) {
-      titleInputRef.current.blur();
-    }
-  };
-
-  const onBlur = () => {
-    if (cardInfo) {
-      const oldHeading = cardInfo.title;
-      if (headingVal === '') {
-        setHeadingVal(oldHeading);
-      } else {
-        dispatch(editCardTitle({ cardId: cardInfo.id, newTitle: headingVal }));
-      }
-    }
-  };
-
-  const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setHeadingVal(e.target.value);
-  };
   useEffect(() => {
-    cardInfo && setHeadingVal(cardInfo.title);
-  }, [cardInfo]);
+    cardInfo && setValue('title', cardInfo.title);
+  }, [cardInfo, setValue]);
 
   useEffect(() => {
     const onKeyDown = (event: any) => {
@@ -63,6 +51,27 @@ const Card: FC<CardProps> = ({ isOpened, closeCard }) => {
     };
   });
 
+  const onSubmit = (data: TitleFormValues) => {
+    if (cardInfo) {
+      const oldHeading = cardInfo.title;
+      if (data.title === '') {
+        setValue('title', oldHeading);
+      } else {
+        dispatch(editCardTitle({ cardId: cardInfo.id, newTitle: data.title }));
+      }
+    }
+  };
+
+  const onBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    handleSubmit(onSubmit)();
+  };
+
+  const onEnterPress = (e: KeyboardEvent<HTMLInputElement>): any => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+    }
+  };
+
   return (
     <>
       {cardInfo && (
@@ -70,13 +79,14 @@ const Card: FC<CardProps> = ({ isOpened, closeCard }) => {
           <Root onClick={(e: React.MouseEvent) => e.stopPropagation()}>
             <FlexWrapper>
               <CardSvg />
-              <Title
-                value={headingVal}
-                onChange={onChange}
-                onBlur={onBlur}
-                ref={titleInputRef}
-                onKeyDown={onEnterPress}
-              />
+              <form onSubmit={handleSubmit(onSubmit)}>
+                <InputField
+                  control={control}
+                  name="title"
+                  onBlur={onBlur}
+                  onKeyDown={onEnterPress}
+                />
+              </form>
             </FlexWrapper>
             <Info>
               In <ColumnTitle>{columnInfo?.heading}</ColumnTitle>
@@ -116,14 +126,6 @@ const Root = styled.div`
 const FlexWrapper = styled.div`
   display: flex;
   gap: 10px;
-`;
-const Title = styled.input`
-  border: none;
-  font-size: 16px;
-  font-weight: 700;
-  width: 450px;
-  font-family: Arial, Helvetica, sans-serif;
-  padding: 4px;
 `;
 const Info = styled.div`
   font-size: 12px;

@@ -1,4 +1,4 @@
-import React, { InputHTMLAttributes } from 'react';
+import React, { InputHTMLAttributes, KeyboardEvent } from 'react';
 import type { FieldValues, FieldPath, UseControllerProps } from 'react-hook-form';
 import { useController } from 'react-hook-form';
 
@@ -8,15 +8,28 @@ const InputField = <TFieldValues extends FieldValues, TName extends FieldPath<TF
   id,
   control,
   name,
-  inputProps,
+  ...props
 }: InputProps<TFieldValues, TName>) => {
-  const { field } = useController({ control, name });
-  return <Input {...field} {...inputProps} />;
+  const {
+    field: { onBlur, ...restField },
+  } = useController({ control, name });
+  const { onBlur: onBlurProps, onKeyDown: onKeyDownProps, ...restProps } = props;
+
+  const onInputBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    onBlurProps?.(e);
+    onBlur();
+  };
+
+  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    onKeyDownProps?.(e);
+  };
+
+  return <Input onBlur={onInputBlur} onKeyDown={onKeyDown} {...restField} {...restProps} />;
 };
 
 export default InputField;
 
 type InputProps<TFieldValues extends FieldValues, TName extends FieldPath<TFieldValues>> = {
   id?: string;
-  inputProps?: InputHTMLAttributes<HTMLInputElement>;
-} & UseControllerProps<TFieldValues, TName>;
+} & UseControllerProps<TFieldValues, TName> &
+  InputHTMLAttributes<HTMLInputElement>;

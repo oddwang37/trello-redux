@@ -1,5 +1,6 @@
 import React, { FC, useState, KeyboardEvent } from 'react';
 import styled from 'styled-components';
+import { useForm, FieldValues } from 'react-hook-form';
 
 import { CommentsSvg, AvatarSvg } from 'components/svg';
 import {
@@ -10,8 +11,19 @@ import {
 import { Comment } from './components';
 import { useAppDispatch } from 'state/store';
 import { addComment } from 'state/ducks/cards/slices';
+import { InputField } from 'components';
+
+interface FormValues extends FieldValues {
+  comment: string;
+}
 
 const Comments: FC<CommentsProps> = ({ cardId, comments }) => {
+  const { handleSubmit, control, setValue } = useForm<FormValues>({
+    defaultValues: {
+      comment: '',
+    },
+  });
+
   const dispatch = useAppDispatch();
 
   const [isEditable, setIsEditable] = useState<boolean>(false);
@@ -19,22 +31,16 @@ const Comments: FC<CommentsProps> = ({ cardId, comments }) => {
   const enableEdit = () => setIsEditable(true);
   const disableEdit = () => setIsEditable(false);
 
-  const [inputValue, setInputValue] = useState<string>('');
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value);
-  };
-
-  const sendComment = () => {
-    dispatch(addComment({ cardId, text: inputValue }));
-    disableEdit();
-    setInputValue('');
-  };
-
   const onEnterPress = (e: KeyboardEvent<HTMLInputElement>): any => {
     if (e.key === 'Enter') {
-      sendComment();
+      handleSubmit(onSubmit);
     }
+  };
+
+  const onSubmit = ({ comment }: FormValues) => {
+    dispatch(addComment({ cardId, text: comment }));
+    disableEdit();
+    setValue('comment', '');
   };
 
   return (
@@ -46,19 +52,13 @@ const Comments: FC<CommentsProps> = ({ cardId, comments }) => {
       <InputWrapper>
         <AvatarSvg />
         {isEditable ? (
-          <CommentSending>
-            <Field
-              placeholder="Write a comment..."
-              onChange={handleChange}
-              value={inputValue}
-              onKeyDown={onEnterPress}
-              autoFocus
-            />
+          <CommentForm onSubmit={handleSubmit(onSubmit)}>
+            <InputField control={control} name="comment" onKeyDown={onEnterPress} autoFocus />
             <ButtonsWrapper>
-              <SaveButton onClick={sendComment}>Send</SaveButton>
+              <SaveButton>Send</SaveButton>
               <CancelButton onClick={disableEdit}>Cancel</CancelButton>
             </ButtonsWrapper>
-          </CommentSending>
+          </CommentForm>
         ) : (
           <CommentButton onClick={enableEdit}>Add a comment...</CommentButton>
         )}
@@ -92,7 +92,7 @@ const Title = styled.div`
   font-size: 16px;
   font-weight: 700;
 `;
-const CommentSending = styled.div``;
+const CommentForm = styled.form``;
 const CommentButton = styled.div`
   width: 450px;
   height: 30px;
@@ -109,16 +109,6 @@ const InputWrapper = styled.div`
   margin-top: 15px;
   display: flex;
   gap: 10px;
-`;
-const Field = styled.input`
-  width: 450px;
-  height: 30px;
-  padding: 5px 15px;
-  border: 1px solid rgba(0, 0, 0, 0.3);
-  border-radius: 5px;
-  &:focus {
-    outline: 1px solid #000;
-  }
 `;
 const CommentsSection = styled.div`
   height: 30%;

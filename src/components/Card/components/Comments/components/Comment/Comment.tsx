@@ -1,51 +1,45 @@
-import React, { FC, useState, useEffect, useRef, KeyboardEvent } from 'react';
+import React, { FC, useEffect, KeyboardEvent } from 'react';
 import styled from 'styled-components';
+import { useForm, FieldValues } from 'react-hook-form';
 
 import { AvatarSvg } from 'components/svg';
 import { useAppDispatch } from 'state/store';
 import { editComment, deleteComment } from 'state/ducks/cards/slices';
+import { InputField } from 'components';
+
+interface FormValues extends FieldValues {
+  comment: string;
+}
 
 const Comment: FC<CommentProps> = ({ id, cardId, text, date }) => {
+  const { handleSubmit, control, setValue } = useForm<FormValues>({
+    defaultValues: {
+      comment: '',
+    },
+  });
   const dispatch = useAppDispatch();
 
-  const [inputValue, setInputValue] = useState<string>('');
-  const [inputIsReadOnly, setInputIsReadOnly] = useState<boolean>(true);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value);
-  };
-
   useEffect(() => {
-    setInputValue(text);
-  }, [text]);
-
-  const onClickEdit = (e: React.MouseEvent<HTMLElement>) => {
-    if (inputRef.current) {
-      setInputIsReadOnly(false);
-      inputRef.current.focus();
-    }
-  };
+    setValue('comment', text);
+  }, [text, setValue]);
 
   const onClickDelete = (e: React.MouseEvent<HTMLElement>) => {
     dispatch(deleteComment({ cardId, commentId: id }));
   };
 
-  const onBlurSave = () => {
-    dispatch(editComment({ cardId, commentId: id, newText: inputValue }));
-    setInputIsReadOnly(true);
-  };
   const onEnterPress = (e: KeyboardEvent<HTMLInputElement>): any => {
-    if (e.key === 'Enter' && inputRef.current) {
-      inputRef.current.blur();
-    }
-  };
-  const forbidFocusOnClick = (e: React.MouseEvent<HTMLElement>) => {
-    if (inputRef.current) {
-      inputRef.current.blur();
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
     }
   };
 
+  const onSubmit = ({ comment }: FormValues) => {
+    dispatch(editComment({ cardId, commentId: id, newText: comment }));
+  };
+
+  const onBlur = () => {
+    handleSubmit(onSubmit)();
+  };
   return (
     <Root>
       <AvatarSvg />
@@ -53,18 +47,11 @@ const Comment: FC<CommentProps> = ({ id, cardId, text, date }) => {
         <FlexWrapper>
           <Username>Username</Username>
           <Date>{date}</Date>
-          <EditBtn onClick={onClickEdit}>Edit</EditBtn>
           <DeleteBtn onClick={onClickDelete}>Delete</DeleteBtn>
         </FlexWrapper>
-        <TextInput
-          value={inputValue}
-          onChange={onChange}
-          onBlur={onBlurSave}
-          ref={inputRef}
-          readOnly={inputIsReadOnly}
-          onClick={forbidFocusOnClick}
-          onKeyDown={onEnterPress}
-        />
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <InputField control={control} name="comment" onBlur={onBlur} onKeyDown={onEnterPress} />
+        </form>
       </div>
     </Root>
   );
@@ -92,14 +79,6 @@ const Date = styled.span`
 `;
 const Username = styled.div`
   font-weight: 700;
-  font-size: 14px;
-`;
-const TextInput = styled.input`
-  width: 450px;
-  padding: 5px 15px;
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  border-radius: 5px;
-  margin: 5px 0 12px 0;
   font-size: 14px;
 `;
 const EditBtn = styled(Date)`
