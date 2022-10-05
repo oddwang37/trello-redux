@@ -1,31 +1,33 @@
 import React, { FC, useState } from 'react';
 import styled from 'styled-components';
+import { useForm, FieldValues } from 'react-hook-form';
 
-import { Overlay, Input, Button } from 'components';
+import { Overlay, Button } from 'components';
 import { useAppDispatch } from 'state/store';
 import { setUsername } from 'state/ducks/username/slices';
+import { InputField } from 'components';
+
+interface FormValues extends FieldValues {
+  username: string;
+}
 
 const LoginModal: FC<LoginModalProps> = ({ isOpened, closeModal }) => {
+  const { control, handleSubmit } = useForm<FormValues>({
+    defaultValues: { username: '' },
+  });
   const dispatch = useAppDispatch();
-  const [inputVal, setInputVal] = useState<string>('');
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputVal(e.target.value);
-  };
-
-  const onSubmitClick = () => {
-    if (inputVal) {
-      dispatch(setUsername({ name: inputVal }));
-      closeModal();
-    }
+  const onSubmit = (data: FormValues) => {
+    dispatch(setUsername({ name: data.username }));
+    closeModal();
   };
 
   return (
     <Overlay isOpened={isOpened}>
-      <Root>
+      <Root onSubmit={handleSubmit(onSubmit)}>
         <Title>Enter your name</Title>
-        <Input onChange={handleChange} value={inputVal} />
-        <Button onClick={onSubmitClick}>Submit</Button>
+        <InputField control={control} name="username" rules={{ required: true }} />
+        <Button>Submit</Button>
       </Root>
     </Overlay>
   );
@@ -38,7 +40,7 @@ type LoginModalProps = {
   closeModal: () => void;
 };
 
-const Root = styled.div`
+const Root = styled.form`
   width: 30vw;
   height: 30vh;
   background-color: #fff;

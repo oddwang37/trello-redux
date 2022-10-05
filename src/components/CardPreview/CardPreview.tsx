@@ -6,22 +6,26 @@ import { SaveButton } from 'components';
 import { useAppDispatch } from 'state/store';
 import { editCardTitle } from 'state/ducks/cards/slices';
 import { setPopupCardId } from 'state/ducks/popupCard/slices';
+import { useForm, FieldValues } from 'react-hook-form';
+
+import { InputField } from 'components';
+
+interface FormValues extends FieldValues {
+  cardTitle: string;
+}
 
 const CardPreview: FC<CardPreviewProps> = ({ title, columnId, cardId, commentsQ, openCard }) => {
-  const dispatch = useAppDispatch();
+  const { control, handleSubmit, setValue } = useForm<FormValues>({
+    defaultValues: { cardTitle: '' },
+  });
   const [isEditable, setIsEditable] = useState<boolean>(false);
+  const dispatch = useAppDispatch();
 
   const enableEdit = () => setIsEditable(true);
   const disableEdit = () => setIsEditable(false);
 
-  const [textareaVal, setTextareaVal] = useState<string>(title);
-
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setTextareaVal(e.target.value);
-  };
-
-  const onClickSave = () => {
-    dispatch(editCardTitle({ cardId, newTitle: textareaVal }));
+  const onSubmit = (data: FormValues) => {
+    dispatch(editCardTitle({ cardId, newTitle: data.cardTitle }));
     disableEdit();
   };
 
@@ -36,34 +40,33 @@ const CardPreview: FC<CardPreviewProps> = ({ title, columnId, cardId, commentsQ,
   };
 
   useEffect(() => {
-    setTextareaVal(title);
+    setValue('cardTitle', title);
   }, [title]);
 
-  const onEnterPress = (e: KeyboardEvent<HTMLTextAreaElement>): any => {
+  const onEnterPress = (e: KeyboardEvent<HTMLInputElement>): any => {
     if (e.key === 'Enter') {
-      dispatch(editCardTitle({ cardId, newTitle: textareaVal }));
-      disableEdit();
+      handleSubmit(onSubmit)();
     }
   };
 
-  const onFocusCursorToEnd = (e: React.FocusEvent<HTMLTextAreaElement>) => {
+  /*  const onFocusCursorToEnd = (e: React.FocusEvent<HTMLTextAreaElement>) => {
     const oldText = textareaVal;
     e.target.value = '';
     e.target.value = oldText;
-  };
+  }; */
+
   return (
     <>
       {isEditable ? (
-        <EditInterface>
-          <EditArea
-            onChange={handleChange}
-            value={textareaVal}
-            onKeyDown={onEnterPress}
-            onFocus={onFocusCursorToEnd}
-            autoFocus
+        <EditForm onSubmit={handleSubmit(onSubmit)}>
+          <InputField
+            control={control}
+            name="cardTitle"
+            rules={{ required: true }}
+            inputProps={{ autoFocus: true, onKeyDown: onEnterPress }}
           />
-          <SaveButton onClick={onClickSave}>Save</SaveButton>
-        </EditInterface>
+          <SaveButton>Save</SaveButton>
+        </EditForm>
       ) : (
         <Title onClick={onClickCard}>
           {title}
@@ -117,7 +120,7 @@ const EditButton = styled.div`
     background-color: #c9c9c9;
   }
 `;
-const EditInterface = styled.div`
+const EditForm = styled.form`
   display: flex;
   flex-direction: column;
   gap: 10px;

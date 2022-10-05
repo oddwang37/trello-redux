@@ -1,6 +1,7 @@
 import React, { FC, useEffect, useState, useRef, KeyboardEvent } from 'react';
 import styled from 'styled-components';
 import { useSelector } from 'react-redux';
+import { useForm, FieldValues } from 'react-hook-form';
 
 import { RootState } from 'state/store';
 import { cardsSelectors } from 'state/ducks/cards';
@@ -9,8 +10,22 @@ import { useAppDispatch } from 'state/store';
 import { editColumnHeading } from 'state/ducks/columns/slices';
 import { addCard } from 'state/ducks/cards/slices';
 import { v4 as uuid } from 'uuid';
+import { InputField } from 'components';
+
+interface FormValues extends FieldValues {
+  addingCard: string;
+}
 
 const Column: FC<ColumnProps> = ({ id, heading, openCard }) => {
+  const {
+    handleSubmit: handleSubmitAddingCard,
+    control: addingCardControl,
+    reset,
+  } = useForm<FormValues>({
+    defaultValues: {
+      cardName: '',
+    },
+  });
   const cards = useSelector((state: RootState) => cardsSelectors.selectCardsForColumn(state, id));
   const dispatch = useAppDispatch();
 
@@ -21,16 +36,10 @@ const Column: FC<ColumnProps> = ({ id, heading, openCard }) => {
   const enableEdit = () => setIsEditable(true);
   const disableEdit = () => setIsEditable(false);
 
-  const [addingInputVal, setAddingInputVal] = useState<string>('');
-
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setAddingInputVal(e.target.value);
-  };
-
-  const createCard = () => {
-    if (addingInputVal) {
-      dispatch(addCard({ columnId: id, title: addingInputVal, id: uuid() }));
-      setAddingInputVal('');
+  const onSubmit = (data: FormValues) => {
+    if (data.cardName) {
+      dispatch(addCard({ columnId: id, title: data.cardName, id: uuid() }));
+      reset();
       setIsEditable(false);
     }
   };
@@ -61,9 +70,9 @@ const Column: FC<ColumnProps> = ({ id, heading, openCard }) => {
     }
   };
 
-  const onEnterPressAddingCard = (e: KeyboardEvent<HTMLTextAreaElement>): any => {
+  const onEnterPressAddingCard = (e: KeyboardEvent<HTMLInputElement>): any => {
     if (e.key === 'Enter') {
-      createCard();
+      handleSubmitAddingCard(onSubmit)();
     }
   };
 
@@ -88,16 +97,15 @@ const Column: FC<ColumnProps> = ({ id, heading, openCard }) => {
           />
         ))}
         {isEditable ? (
-          <AddingCardInterface>
-            <AddCardTextArea
-              placeholder="Enter a card name..."
-              onChange={handleChange}
-              value={addingInputVal}
-              onKeyDown={onEnterPressAddingCard}
-              autoFocus
+          <AddingCardInterface onSubmit={handleSubmitAddingCard(onSubmit)}>
+            <InputField
+              control={addingCardControl}
+              name="cardName"
+              rules={{ required: true }}
+              inputProps={{ autoFocus: true, onKeyDown: onEnterPressAddingCard }}
             />
             <ButtonsWrapper>
-              <SaveButton onClick={createCard}>Create</SaveButton>
+              <SaveButton>Create</SaveButton>
               <CancelAdding onClick={disableEdit}>
                 <div>&times;</div>
               </CancelAdding>
@@ -164,7 +172,7 @@ const AddCard = styled.div`
     background-color: #e2e2e2;
   }
 `;
-const AddingCardInterface = styled.div``;
+const AddingCardInterface = styled.form``;
 const AddCardTextArea = styled.textarea`
   resize: none;
   width: 100%;
