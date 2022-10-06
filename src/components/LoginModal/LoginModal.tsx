@@ -4,7 +4,7 @@ import { useForm, FieldValues } from 'react-hook-form';
 
 import { Overlay, Button } from 'components';
 import { useAppDispatch } from 'state/store';
-import { setUsername } from 'state/ducks/username/slices';
+import { setUsername } from 'state/ducks/user/slices';
 import { InputField } from 'components';
 
 interface FormValues extends FieldValues {

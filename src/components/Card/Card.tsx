@@ -94,7 +94,7 @@ const Card: FC<CardProps> = ({ isOpened, closeCard }) => {
               by {username}
             </Info>
             <Description cardId={cardId} description={cardInfo.description} />
-            <Comments cardId={cardInfo.id} comments={cardInfo.comments} />
+            <Comments cardId={cardInfo.id} />
             <CloseButton closeModal={closeCard} />
             <DeleteButton onClick={onClickDelete}>
               <BinSvg />

@@ -1,6 +1,8 @@
 import React, { FC, useState, KeyboardEvent } from 'react';
 import styled from 'styled-components';
 import { useForm, FieldValues } from 'react-hook-form';
+import { useSelector } from 'react-redux';
+import { v4 as uuid } from 'uuid';
 
 import { CommentsSvg, AvatarSvg } from 'components/svg';
 import {
@@ -9,21 +11,22 @@ import {
   ButtonsWrapper,
 } from 'components/Card/components/Description/Description';
 import { Comment } from './components';
-import { useAppDispatch } from 'state/store';
-import { addComment } from 'state/ducks/cards/slices';
 import { InputField } from 'components';
+import { useAppDispatch, RootState } from 'state/store';
+import { addComment } from 'state/ducks/comments/slices';
+import { selectCommentsOfCard } from 'state/ducks/comments/selectors';
 
 interface FormValues extends FieldValues {
   comment: string;
 }
 
-const Comments: FC<CommentsProps> = ({ cardId, comments }) => {
+const Comments: FC<CommentsProps> = ({ cardId }) => {
+  const comments = useSelector((state: RootState) => selectCommentsOfCard(state, cardId));
   const { handleSubmit, control, setValue } = useForm<FormValues>({
     defaultValues: {
       comment: '',
     },
   });
-
   const dispatch = useAppDispatch();
 
   const [isEditable, setIsEditable] = useState<boolean>(false);
@@ -38,7 +41,7 @@ const Comments: FC<CommentsProps> = ({ cardId, comments }) => {
   };
 
   const onSubmit = ({ comment }: FormValues) => {
-    dispatch(addComment({ cardId, text: comment }));
+    dispatch(addComment({ id: uuid(), cardId, text: comment }));
     disableEdit();
     setValue('comment', '');
   };
@@ -80,7 +83,6 @@ export default Comments;
 
 type CommentsProps = {
   cardId: string;
-  comments?: { text: string; date: string; id: string }[];
 };
 
 const FlexWrapper = styled.div`

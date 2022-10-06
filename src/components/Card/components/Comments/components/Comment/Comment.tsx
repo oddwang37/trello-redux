@@ -4,7 +4,7 @@ import { useForm, FieldValues } from 'react-hook-form';
 
 import { AvatarSvg } from 'components/svg';
 import { useAppDispatch } from 'state/store';
-import { editComment, deleteComment } from 'state/ducks/cards/slices';
+import { editComment, deleteComment } from 'state/ducks/comments/slices';
 import { InputField } from 'components';
 
 interface FormValues extends FieldValues {
