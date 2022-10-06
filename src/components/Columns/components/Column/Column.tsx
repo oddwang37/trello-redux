@@ -1,6 +1,7 @@
-import React, { FC, useEffect, useState, useRef, KeyboardEvent } from 'react';
+import React, { FC, useEffect, useState, KeyboardEvent } from 'react';
 import styled from 'styled-components';
 import { useSelector } from 'react-redux';
+import { useForm, FieldValues } from 'react-hook-form';
 
 import { RootState } from 'state/store';
 import { cardsSelectors } from 'state/ducks/cards';
@@ -9,73 +10,90 @@ import { useAppDispatch } from 'state/store';
 import { editColumnHeading } from 'state/ducks/columns/slices';
 import { addCard } from 'state/ducks/cards/slices';
 import { v4 as uuid } from 'uuid';
+import { InputField } from 'components';
+
+interface FormValues extends FieldValues {
+  addingCard: string;
+}
+
+interface HeadingFormValues extends FieldValues {
+  heading: string;
+}
 
 const Column: FC<ColumnProps> = ({ id, heading, openCard }) => {
+  const {
+    handleSubmit: handleSubmitAddingCard,
+    control: addingCardControl,
+    reset: resetAddingCard,
+  } = useForm<FormValues>({
+    defaultValues: {
+      cardName: '',
+    },
+  });
+  const {
+    handleSubmit: handleSubmitHeading,
+    control: headingControl,
+    setValue: setHeadingValue,
+  } = useForm<HeadingFormValues>({
+    defaultValues: {
+      heading: '',
+    },
+  });
   const cards = useSelector((state: RootState) => cardsSelectors.selectCardsForColumn(state, id));
   const dispatch = useAppDispatch();
-
-  const headingRef = useRef<HTMLInputElement>(null);
 
   const [isEditable, setIsEditable] = useState<boolean>(false);
 
   const enableEdit = () => setIsEditable(true);
   const disableEdit = () => setIsEditable(false);
 
-  const [addingInputVal, setAddingInputVal] = useState<string>('');
-
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setAddingInputVal(e.target.value);
-  };
-
-  const createCard = () => {
-    if (addingInputVal) {
-      dispatch(addCard({ columnId: id, title: addingInputVal, id: uuid() }));
-      setAddingInputVal('');
+  const onSubmitAdding = (data: FormValues) => {
+    if (data.cardName) {
+      dispatch(addCard({ columnId: id, title: data.cardName, id: uuid() }));
+      resetAddingCard();
       setIsEditable(false);
     }
   };
 
-  const [inputHeadingText, setInputHeadingText] = useState<string>('');
-
-  const onHeadingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputHeadingText(e.target.value);
-  };
-
-  const onBlurHeading = () => {
+  const onSubmitHeading = (data: HeadingFormValues) => {
     const prevHeading = heading;
-    if (inputHeadingText === '') {
+    if (data.heading === '') {
       dispatch(editColumnHeading({ columnId: id, newHeading: prevHeading }));
-      setInputHeadingText(heading);
+      setHeadingValue('heading', heading);
     } else {
-      dispatch(editColumnHeading({ columnId: id, newHeading: inputHeadingText }));
+      dispatch(editColumnHeading({ columnId: id, newHeading: data.heading }));
     }
+  };
+  const onBlurHeading = () => {
+    handleSubmitHeading(onSubmitHeading)();
   };
 
   useEffect(() => {
-    setInputHeadingText(heading);
-  }, [heading]);
+    setHeadingValue('heading', heading);
+  }, [heading, setHeadingValue]);
 
   const onEnterPressHeading = (e: KeyboardEvent<HTMLInputElement>): any => {
-    if (e.key === 'Enter' && headingRef.current) {
-      headingRef.current.blur();
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
     }
   };
 
-  const onEnterPressAddingCard = (e: KeyboardEvent<HTMLTextAreaElement>): any => {
+  const onEnterPressAddingCard = (e: KeyboardEvent<HTMLInputElement>): any => {
     if (e.key === 'Enter') {
-      createCard();
+      handleSubmitAddingCard(onSubmitAdding)();
     }
   };
 
   return (
     <Root>
-      <Header
-        value={inputHeadingText}
-        ref={headingRef}
-        onKeyDown={onEnterPressHeading}
-        onChange={onHeadingChange}
-        onBlur={onBlurHeading}
-      />
+      <form onSubmit={handleSubmitHeading(onSubmitHeading)}>
+        <InputField
+          control={headingControl}
+          name="heading"
+          onKeyDown={onEnterPressHeading}
+          onBlur={onBlurHeading}
+        />
+      </form>
       <Content>
         {cards.map((item) => (
           <CardPreview
@@ -88,21 +106,20 @@ const Column: FC<ColumnProps> = ({ id, heading, openCard }) => {
           />
         ))}
         {isEditable ? (
-          <AddingCardInterface>
-            <AddCardTextArea
-              placeholder="Enter a card name..."
-              onChange={handleChange}
-              value={addingInputVal}
+          <AddingCardForm onSubmit={handleSubmitAddingCard(onSubmitAdding)}>
+            <InputField
+              control={addingCardControl}
+              name="cardName"
+              rules={{ required: true }}
               onKeyDown={onEnterPressAddingCard}
-              autoFocus
             />
             <ButtonsWrapper>
-              <SaveButton onClick={createCard}>Create</SaveButton>
+              <SaveButton>Create</SaveButton>
               <CancelAdding onClick={disableEdit}>
                 <div>&times;</div>
               </CancelAdding>
             </ButtonsWrapper>
-          </AddingCardInterface>
+          </AddingCardForm>
         ) : (
           <AddCard onClick={enableEdit}>
             <Plus>+</Plus>
@@ -134,23 +151,6 @@ const Root = styled.div`
   box-shadow: 5px 10px 10px rgba(0, 0, 0, 0.3);
 `;
 
-const Header = styled.input`
-  background-color: #7dadb0;
-  border: none;
-  border-top-left-radius: 5px;
-  border-top-right-radius: 5px;
-  padding: 10px 24px;
-  color: #fff;
-  font-weight: 700;
-  font-size: 16px;
-  font-family: Arial, Helvetica, sans-serif;
-  display: block;
-  width: 100%;
-  &:focus {
-    background-color: #fff;
-    color: #000;
-  }
-`;
 const AddCard = styled.div`
   height: 32px;
   padding: 5px 14px;
@@ -164,20 +164,7 @@ const AddCard = styled.div`
     background-color: #e2e2e2;
   }
 `;
-const AddingCardInterface = styled.div``;
-const AddCardTextArea = styled.textarea`
-  resize: none;
-  width: 100%;
-  height: 60px;
-  padding: 8px 12px;
-  border-radius: 5px;
-  font-family: Arial, Helvetica, sans-serif;
-  border: 1px solid #000;
-  font-size: 14px;
-  &:focus {
-    border: none;
-  }
-`;
+const AddingCardForm = styled.form``;
 const ButtonsWrapper = styled.div`
   margin-top: 10px;
   display: flex;

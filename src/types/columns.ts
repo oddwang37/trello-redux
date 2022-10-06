@@ -2,7 +2,9 @@ export type Comment = { id: string; date: string; text: string };
 
 export type Comments = Comment[];
 
-export type CardType = { id: string; title: string; description: string; comments: Comments };
+type CommentsIds = string[];
+
+export type CardType = { id: string; title: string; description: string; comments: CommentsIds };
 
 export type CardsType = CardType[];
 

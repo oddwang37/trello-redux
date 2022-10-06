@@ -1,42 +1,53 @@
-import React, { FC, useState, KeyboardEvent } from 'react';
+import React, { FC, useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useForm } from 'react-hook-form';
 
 import { DescriptionSvg } from 'components/svg';
 import { useAppDispatch } from 'state/store';
 import { editDescription, deleteDescription } from 'state/ducks/cards/slices';
+import { InputField } from 'components';
+
+interface FormValues {
+  description: string;
+}
 
 const Description: FC<DescriptionProps> = ({ cardId, description = '' }) => {
   const dispatch = useAppDispatch();
   const [isEditable, setIsEditable] = useState<boolean>(false);
 
+  const { handleSubmit, control, setValue } = useForm<FormValues>({
+    defaultValues: {
+      description: '',
+    },
+  });
+
   const enableEdit = () => {
-    setTextareaValue(description);
+    setValue('description', description);
     setIsEditable(true);
   };
+
   const disableEdit = () => setIsEditable(false);
 
-  const [textareaValue, setTextareaValue] = useState<string>('');
-
-  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setTextareaValue(e.target.value);
-  };
-
-  const saveDescription = () => {
-    dispatch(editDescription({ cardId, newDescription: textareaValue }));
-    setTextareaValue('');
-    disableEdit();
-  };
-
-  const onEnterPress = (e: KeyboardEvent<HTMLTextAreaElement>): any => {
+  /*  const onEnterPress = (e: KeyboardEvent<HTMLInputElement>): any => {
     if (e.key === 'Enter') {
       saveDescription();
     }
-  };
+  }; */
 
-  const onFocusCursorToEnd = (e: React.FocusEvent<HTMLTextAreaElement>) => {
-    const text = textareaValue;
+  useEffect(() => {
+    setValue('description', description);
+  }, [description, setValue]);
+
+  const onFocusCursorToEnd = (e: React.FocusEvent<HTMLInputElement>) => {
+    const text = e.target.value;
     e.target.value = '';
     e.target.value = text;
+  };
+
+  const onSubmit = (data: FormValues) => {
+    dispatch(editDescription({ cardId, newDescription: data.description }));
+    setValue('description', '');
+    disableEdit();
   };
 
   const StaticDescription = () => {
@@ -56,19 +67,13 @@ const Description: FC<DescriptionProps> = ({ cardId, description = '' }) => {
         <Delete onClick={() => dispatch(deleteDescription({ cardId }))}>Delete</Delete>
       </FlexWrapper>
       {isEditable ? (
-        <DescriptionEditAreaWrapper>
-          <DescriptionTextArea
-            onKeyDown={onEnterPress}
-            onChange={handleTextareaChange}
-            value={textareaValue}
-            onFocus={onFocusCursorToEnd}
-            autoFocus
-          />
+        <DescriptionForm onSubmit={handleSubmit(onSubmit)}>
+          <InputField control={control} name="description" onFocus={onFocusCursorToEnd} autoFocus />
           <ButtonsWrapper>
-            <SaveButton onClick={saveDescription}>Save</SaveButton>
+            <SaveButton>Save</SaveButton>
             <CancelButton onClick={disableEdit}>Cancel</CancelButton>
           </ButtonsWrapper>
-        </DescriptionEditAreaWrapper>
+        </DescriptionForm>
       ) : (
         <StaticDescription />
       )}
@@ -118,31 +123,20 @@ const DescriptionButton = styled.div`
     background-color: rgba(0, 0, 0, 0.15);
   }
 `;
-const DescriptionEditAreaWrapper = styled.div`
+const DescriptionForm = styled.form`
   margin: 10px 0 20px 30px;
 `;
-const DescriptionTextArea = styled.textarea`
-  resize: none;
-  height: 80px;
-  width: 450px;
-  border-radius: 5px;
-  border: 1px solid rgba(0, 0, 0, 0.3);
-  padding: 7px 15px;
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 14px;
-  &:focus {
-    outline: 1px solid #000;
-  }
-`;
+
 export const ButtonsWrapper = styled.div`
   display: flex;
   gap: 15px;
   margin-top: 15px;
 `;
-export const SaveButton = styled.div`
+
+export const SaveButton = styled.button`
   height: 30px;
   background-color: #7dadb0;
-  padding: 4px 8px;
+  padding: 5px 12px;
   color: #fff;
   font-weight: 700;
   display: flex;
@@ -150,6 +144,11 @@ export const SaveButton = styled.div`
   cursor: pointer;
   border-radius: 5px;
   font-size: 14px;
+  border: none;
+  font-family: Arial, Helvetica, sans-serif;
+  &:hover {
+    background-color: #10a6b1;
+  }
 `;
 export const CancelButton = styled(SaveButton)`
   background-color: #fff;
