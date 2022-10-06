@@ -1,4 +1,4 @@
-import React, { FC, useState, useEffect, KeyboardEvent } from 'react';
+import React, { FC, useState, useEffect } from 'react';
 import styled from 'styled-components';
 
 import { EditSvg } from 'components/svg';
@@ -6,22 +6,26 @@ import { SaveButton } from 'components';
 import { useAppDispatch } from 'state/store';
 import { editCardTitle } from 'state/ducks/cards/slices';
 import { setPopupCardId } from 'state/ducks/popupCard/slices';
+import { useForm, FieldValues } from 'react-hook-form';
+
+import { InputField } from 'components';
+
+interface FormValues extends FieldValues {
+  cardTitle: string;
+}
 
 const CardPreview: FC<CardPreviewProps> = ({ title, columnId, cardId, commentsQ, openCard }) => {
-  const dispatch = useAppDispatch();
+  const { control, handleSubmit, setValue } = useForm<FormValues>({
+    defaultValues: { cardTitle: '' },
+  });
   const [isEditable, setIsEditable] = useState<boolean>(false);
+  const dispatch = useAppDispatch();
 
   const enableEdit = () => setIsEditable(true);
   const disableEdit = () => setIsEditable(false);
 
-  const [textareaVal, setTextareaVal] = useState<string>(title);
-
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setTextareaVal(e.target.value);
-  };
-
-  const onClickSave = () => {
-    dispatch(editCardTitle({ cardId, newTitle: textareaVal }));
+  const onSubmit = (data: FormValues) => {
+    dispatch(editCardTitle({ cardId, newTitle: data.cardTitle }));
     disableEdit();
   };
 
@@ -36,34 +40,22 @@ const CardPreview: FC<CardPreviewProps> = ({ title, columnId, cardId, commentsQ,
   };
 
   useEffect(() => {
-    setTextareaVal(title);
-  }, [title]);
+    setValue('cardTitle', title);
+  }, [title, setValue]);
 
-  const onEnterPress = (e: KeyboardEvent<HTMLTextAreaElement>): any => {
-    if (e.key === 'Enter') {
-      dispatch(editCardTitle({ cardId, newTitle: textareaVal }));
-      disableEdit();
-    }
-  };
-
-  const onFocusCursorToEnd = (e: React.FocusEvent<HTMLTextAreaElement>) => {
+  /*  const onFocusCursorToEnd = (e: React.FocusEvent<HTMLTextAreaElement>) => {
     const oldText = textareaVal;
     e.target.value = '';
     e.target.value = oldText;
-  };
+  }; */
+
   return (
     <>
       {isEditable ? (
-        <EditInterface>
-          <EditArea
-            onChange={handleChange}
-            value={textareaVal}
-            onKeyDown={onEnterPress}
-            onFocus={onFocusCursorToEnd}
-            autoFocus
-          />
-          <SaveButton onClick={onClickSave}>Save</SaveButton>
-        </EditInterface>
+        <EditForm onSubmit={handleSubmit(onSubmit)}>
+          <InputField control={control} name="cardTitle" rules={{ required: true }} />
+          <SaveButton>Save</SaveButton>
+        </EditForm>
       ) : (
         <Title onClick={onClickCard}>
           {title}
@@ -117,24 +109,13 @@ const EditButton = styled.div`
     background-color: #c9c9c9;
   }
 `;
-const EditInterface = styled.div`
+const EditForm = styled.form`
   display: flex;
   flex-direction: column;
   gap: 10px;
   margin-bottom: 10px;
 `;
-const EditArea = styled.textarea`
-  resize: none;
-  height: 80px;
-  width: 100%;
-  border-radius: 5px;
-  border: 1px solid rgba(0, 0, 0, 0.3);
-  padding: 7px 15px;
-  font-family: Arial, Helvetica, sans-serif;
-  &:focus {
-    outline: 1px solid #000;
-  }
-`;
+
 const Comments = styled.div`
   font-size: 14px;
   color: rgba(0, 0, 0, 0.3);
